@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "_macros.html" import m_glosario, m_titulo %}
+
+{% block titulo %}Fuentes y método{% endblock %}
+{% block sector %}fuentes{% endblock %}
+
+{% block contenido %}
+<section class="cabecera">
+    <div class="contenedor cabecera__in">
+        <p class="migas"><a href="{{ url_for('inicio') }}">Inicio</a> <span>/</span> Fuentes y método</p>
+        <h1><span class="cabecera__icono" aria-hidden="true">📚</span> Fuentes y método</h1>
+        <p class="lema">De dónde salen los datos, cómo se han preparado y cómo está hecho el dashboard.</p>
+    </div>
+</section>
+
+<div class="contenedor">
+    <section class="bloque reveal" aria-labelledby="t-datos">
+        {{ m_titulo("t-datos", "Datos abiertos", "Conjuntos de datos",
+        "Los datos son estadísticas oficiales del Ministerio de Cultura, publicadas en abierto en CULTURABase. Cine procede de la Estadística de Cinematografía del ICAA; teatro y música, de la SGAE, recogidas en los Anuarios de Estadísticas Culturales 2024 (años 2022 y 2023) y 2026 (años 2024 y 2025). Puedes descargar los CSV tal como los usa este dashboard.") }}
+        <div class="tabla-wrap">
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Conjunto</th>
+                        <th>Origen</th>
+                        <th>Contenido</th>
+                        <th class="num">Filas</th>
+                        <th class="num">Columnas</th>
+                        <th>CSV</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in conjuntos %}
+                    <tr>
+                        <td><strong>{{ c.titulo }}</strong></td>
+                        <td>{{ c.origen }}</td>
+                        <td>{{ c.contenido }}</td>
+                        <td class="num"><span>{{ c.filas }}</span></td>
+                        <td class="num"><span>{{ c.columnas }}</span></td>
+                        <td><a class="descarga" href="{{ url_for('descargar', archivo=c.descarga) }}">⬇ {{ c.descarga }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloque reveal" aria-labelledby="t-periodo">
+        {{ m_titulo("t-periodo", "Periodo", "Qué años incluye el dashboard",
+        "De " ~ anio_inicio ~ " a " ~ anio_fin ~ ". Estas son las razones de que empiece y acabe ahí.") }}
+        <div class="reglas">
+            <div class="regla">
+                <h3>2021 y antes: pandemia y datos incompletos</h3>
+                <p>{{ aviso_periodo.antes }}</p>
+            </div>
+            <div class="regla">
+                <h3>2025: el último año publicado</h3>
+                <p>{{ aviso_periodo.ultimo }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="bloque reveal" aria-labelledby="t-metodo">
+        {{ m_titulo("t-metodo", "Método", "Cómo se han preparado los datos") }}
+        <ol class="pasos">
+            <li><strong>Extracción.</strong> Las tablas se han extraído de los PDF oficiales del Ministerio de Cultura:
+                Anuarios de Estadísticas Culturales 2024 y 2026 (capítulos 15 y 16) y Estadística de Cinematografía.
+                2024 y 2025 se han leído de la edición 2026 con un script, no a mano.</li>
+            <li><strong>Verificación.</strong> La suma de las comunidades coincide con el total de España (salvo
+                redondeos de la propia fuente, de ±1 mil o ±0,2 millones). Además se ha cotejado cada edición con la
+                anterior: los 2023 de la edición 2025 coinciden con los de este dashboard y los 2024 de las ediciones
+                2025 y 2026 coinciden entre sí, salvo dos erratas de la edición 2025 en el gasto medio (ver abajo).</li>
+            <li><strong>Periodo.</strong> El dashboard usa de {{ anio_inicio }} a {{ anio_fin }}, los años con el mismo
+                detalle en los tres sectores. Los CSV descargables conservan también 2021 tal como viene en la fuente,
+                pero no se usa.</li>
+            <li><strong>Sin inventar valores.</strong> Todo valor es el publicado. Las únicas cifras calculadas son los
+                porcentajes de reparto en la comparativa y en música, las variaciones entre años y las conversiones de
+                unidades (de millones a miles); las celdas que la fuente no publica se dejan vacías. En las tartas del
+                comparador, el porcentaje se calcula sobre la suma de los sectores marcados.</li>
+        </ol>
+    </section>
+
+    <section class="bloque reveal" aria-labelledby="t-arq">
+        {{ m_titulo("t-arq", "Código", "Cómo está hecho el dashboard",
+        "El código separa las rutas de la lógica: app.py solo atiende peticiones y todo el trabajo con datos está en módulos independientes.") }}
+        <pre class="arbol" aria-label="Estructura del proyecto">app.py                  ← solo rutas (Flask)
+logic/
+ ├─ paginas.py          ← lee los filtros de la URL y arma cada página
+ ├─ datos.py            ← lee los CSV (pandas) y los filtra / ordena
+ ├─ analisis.py         ← cifras clave y conclusiones calculadas
+ ├─ graficos.py         ← datos de los gráficos (barras, líneas, tartas, burbujas...)
+ ├─ comparar.py         ← reglas del comparador entre años
+ ├─ imagenes.py         ← los gráficos de cada sector como imagen PNG (matplotlib)
+ ├─ tablas.py           ← formato de la tabla y enlaces de orden
+ ├─ formato.py          ← números al estilo español (1.234,5)
+ └─ config.py           ← colores, definiciones y textos
+templates/              ← páginas HTML con Jinja
+static/
+ ├─ css/style.css       ← diseño
+ └─ js/graficos.js      ← dibuja los gráficos interactivos (Chart.js)
+data/                   ← CSV</pre>
+    </section>
+
+    {{ m_glosario(glosario, notas) }}
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% from "_macros.html" import m_grafico, m_titulo %}
+
+{% block titulo %}Comparativa{% endblock %}
+{% block sector %}comparativa{% endblock %}
+
+{% macro chip(c) %}
+<span class="cambio {{ c.tendencia or '' }}">{{ c.texto }}</span>{% if c.secundario %} <small class="cambio__abs">{{ c.secundario }}</small>{% endif %}
+{% endmacro %}
+
+{% block contenido %}
+{# Un solo formulario: todo lo que se elige en el comparador se envía junto. cmp=1 indica que viene de él. #}
+<form id="filtros" method="get" action="{{ ruta }}"><input type="hidden" name="cmp" value="1"></form>
+
+{% macro icono_estilo(e) %}
+<svg viewBox="0 0 36 24" width="36" height="24" aria-hidden="true" focusable="false" class="estilo__icono">
+    {% if e == 'barras' %}
+    <rect x="4" y="12" width="5" height="10" rx="1" class="i-a" /><rect x="10" y="7" width="5" height="15" rx="1" />
+    <rect x="20" y="9" width="5" height="13" rx="1" class="i-a" /><rect x="26" y="4" width="5" height="18" rx="1" />
+    {% elif e == 'lineas' %}
+    <polyline points="3,18 13,12 23,14 33,5" /><polyline points="3,21 13,19 23,17 33,15" class="i-a" />
+    {% elif e == 'indice' %}
+    <line x1="2" y1="13" x2="34" y2="13" class="i-base" /><polyline points="3,13 13,9 23,7 33,3" />
+    <polyline points="3,13 13,15 23,18 33,20" class="i-a" />
+    {% elif e == 'tartas' %}
+    <circle cx="11" cy="12" r="9" class="i-a" /><path d="M11 12V3a9 9 0 0 1 8.5 11.9Z" />
+    <circle cx="28" cy="15" r="6" class="i-a" /><path d="M28 15V9a6 6 0 0 1 5.6 8.1Z" />
+    {% else %}
+    <line x1="16" y1="2" x2="16" y2="22" class="i-base" /><rect x="16" y="4" width="16" height="5" rx="1" />
+    <rect x="16" y="11" width="9" height="5" rx="1" /><rect x="7" y="18" width="9" height="4" rx="1" class="i-a" />
+    {% endif %}
+</svg>
+{% endmacro %}
+
+<section class="cabecera">
+    <div class="contenedor cabecera__in">
+        <p class="migas"><a href="{{ url_for('inicio') }}">Inicio</a> <span>/</span> Comparativa</p>
+        <h1><span class="cabecera__icono" aria-hidden="true">⚖️</span> Comparativa</h1>
+        <p class="lema">Qué ha cambiado de un año a otro en cine, teatro y música, y dónde.</p>
+        <p class="intro">Elige los años, los sectores y qué medir, y mira cómo cambian en barras, líneas o tartas.
+            Debajo tienes algunas comparaciones que llaman la atención.</p>
+    </div>
+</section>
+
+<div class="contenedor">
+    {# ------------------------------------------------ el comparador #}
+    <section class="bloque comparador" id="comparador" aria-labelledby="t-comparador">
+        {{ m_titulo("t-comparador", "Comparador", "Elige qué quieres comparar",
+        "Marca los años y los sectores, escoge qué medir y cómo verlo. El gráfico, la conclusión y la tabla cambian al momento.") }}
+
+        <div class="panel-cmp">
+            <fieldset class="paso-cmp">
+                <legend><span class="paso-cmp__n">1</span> Años</legend>
+                <div class="casillas">
+                    {% for a in cmp.opciones_anios %}
+                    <label class="casilla">
+                        <input type="checkbox" name="anios" value="{{ a }}" form="filtros" data-auto
+                            {{ 'checked' if a in cmp.anios }}>
+                        <span>{{ a }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <p class="paso-cmp__ayuda">Marca dos o más para ver cómo cambia.</p>
+            </fieldset>
+
+            <fieldset class="paso-cmp">
+                <legend><span class="paso-cmp__n">2</span> Sectores</legend>
+                <div class="casillas">
+                    {% for clave, nombre, color in cmp.opciones_sectores %}
+                    <label class="casilla casilla--sector" style="--c: {{ color }}">
+                        <input type="checkbox" name="sectores" value="{{ clave }}" form="filtros" data-auto
+                            {{ 'checked' if clave in cmp.sectores }}>
+                        <span><i aria-hidden="true"></i>{{ nombre }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <label class="paso-cmp__donde">Dónde
+                    <select name="donde" form="filtros" data-auto>
+                        {% for c in cmp.opciones_donde %}
+                        <option value="{{ c }}" {{ 'selected' if c == cmp.donde }}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </fieldset>
+
+            <fieldset class="paso-cmp paso-cmp--ancho">
+                <legend><span class="paso-cmp__n">3</span> Qué medir</legend>
+                <div class="medidas">
+                    {% for m, d in cmp.opciones_medidas %}
+                    <label class="medida">
+                        <input type="radio" name="medida" value="{{ m }}" form="filtros" data-auto
+                            {{ 'checked' if m == cmp.medida }}>
+                        <span><strong>{{ d.nombre }}</strong>{{ d.pregunta }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset class="paso-cmp paso-cmp--ancho">
+                <legend><span class="paso-cmp__n">4</span> Cómo verlo</legend>
+                <div class="estilos">
+                    {% for e, nombre in cmp.opciones_estilos %}
+                    <label class="estilo">
+                        <input type="radio" name="estilo" value="{{ e }}" form="filtros" data-auto
+                            {{ 'checked' if e == cmp.estilo }}>
+                        <span>{{ icono_estilo(e) }}{{ nombre }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="resultado-cmp" aria-live="polite">
+            {% if cmp.vacio %}
+            <p class="vacio-cmp">{{ cmp.vacio }}</p>
+            {% else %}
+            {% if cmp.aviso_estilo %}<p class="aviso-cmp">{{ cmp.aviso_estilo }}</p>{% endif %}
+            <div class="graficos">{{ m_grafico(cmp.grafico) }}</div>
+
+            {% if cmp.avisos %}
+            <div class="avisos-cmp">
+                <h3>Para leerlo bien</h3>
+                <ul>{% for a in cmp.avisos %}<li>{{ a }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+
+            <div class="tabla-wrap tabla-cmp" tabindex="0" role="region" aria-label="Valores del comparador">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th scope="col">Sector</th>
+                            {% for a in cmp.tabla.anios %}<th scope="col" class="num">{{ a }}</th>{% endfor %}
+                            {% if cmp.con_cambio %}
+                            <th scope="col" class="num">Cambio {{ cmp.tabla.anios[0] }}–{{ cmp.tabla.anios[-1] }}</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in cmp.tabla.filas %}
+                        <tr>
+                            <th scope="row"><i class="muestra" style="background: {{ cmp.colores[f.clave] }}"></i>{{ f.nombre }}{% if f.pequena %} <abbr title="Base pequeña: menos del 1 % del público de España del sector">*</abbr>{% endif %}</th>
+                            {% for t in f.textos %}<td class="num{{ ' fuerte' if loop.last }}">{{ t }}</td>{% endfor %}
+                            {% if cmp.con_cambio %}<td class="num">{{ chip(f.cambio) }}</td>{% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ------------------------------------------------ divisor y comparaciones destacadas.
+       Las cifras se calculan en paginas._destacados; cada una abre su comparación arriba. #}
+    <div class="divisor" role="separator" aria-hidden="true"><span></span></div>
+
+    <section class="destacados" aria-labelledby="t-destacados">
+        <h2 id="t-destacados">Comparaciones que llaman la atención</h2>
+        <p class="destacados__intro">Calculadas con los datos. Pulsa una para verla en el comparador.</p>
+        <ul class="destacados__lista">
+            {% for d in destacados %}
+            <li>
+                <a class="destacado" href="{{ d.url }}">
+                    <span class="destacado__cifra">{{ d.cifra }}</span>
+                    <span class="destacado__texto">{{ d.texto }}</span>
+                    <span class="destacado__ir">Verla en el comparador</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% from "_macros.html" import m_kpis, m_hallazgos, m_grafico, m_tabla, m_glosario, m_titulo, m_segmentado, m_anio_seccion %}
+
+{% block titulo %}{{ cfg.titulo }}{% endblock %}
+{% block sector %}{{ sector }}{% endblock %}
+
+{% block contenido %}
+{# Un solo formulario controla toda la página. Los controles de abajo se enlazan con form="filtros". #}
+<form id="filtros" method="get" action="{{ ruta }}">
+    {% if tabla.orden %}
+    <input type="hidden" name="orden" value="{{ tabla.orden }}">
+    <input type="hidden" name="dir" value="{{ tabla.dir }}">
+    {% endif %}
+</form>
+
+<section class="cabecera">
+    <div class="contenedor cabecera__in">
+        <p class="migas"><a href="{{ url_for('inicio') }}">Inicio</a> <span>/</span> {{ cfg.titulo }}</p>
+        <div class="cabecera__fila">
+            <div>
+                <h1><span class="cabecera__icono" aria-hidden="true">{{ cfg.icono }}</span> {{ cfg.titulo }}</h1>
+                <p class="lema">{{ cfg.lema }}</p>
+                <p class="intro">{{ cfg.intro }}</p>
+            </div>
+            <div class="cabecera__control">
+                <span class="cabecera__etiqueta">Año del resumen y el análisis</span>
+                {{ m_segmentado("anio", opciones_anio, anio, "kpis", "Año") }}
+                <p class="cabecera__nota">{{ nota_anios }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<nav class="subnav" aria-label="En esta página">
+    <div class="contenedor subnav__in">
+        <a href="#kpis">Resumen</a>
+        <a href="#t-hallazgos">Análisis</a>
+        <a href="#t-evol">Evolución</a>
+        <a href="#t-ccaa">Comunidades</a>
+        <a href="#tabla">Datos</a>
+    </div>
+</nav>
+
+<div class="contenedor">
+    {{ m_kpis(kpis) }}
+    <p class="nota-kpi">Bajo cada cifra: cambio respecto al año anterior.</p>
+
+    {{ m_hallazgos(hallazgos) }}
+
+    <section class="bloque reveal" aria-labelledby="t-evol">
+        {% if reparto_con_anio %}
+        {% call m_titulo("t-evol", "España", "Evolución y reparto",
+        "El selector cambia los gráficos de reparto. Los de evolución muestran siempre todos los años.") %}
+        {{ m_anio_seccion("anio_r", opciones_anio, anio_r, "t-evol") }}
+        {% endcall %}
+        {% else %}
+        {{ m_titulo("t-evol", "España", "Evolución y reparto",
+        "Estos gráficos muestran todos los años a la vez, así que no tienen selector de año.") }}
+        {% endif %}
+        <div class="graficos">
+            {% for g in graficos_fijos %}{{ m_grafico(g) }}{% endfor %}
+        </div>
+    </section>
+
+    <section class="bloque reveal" aria-labelledby="t-ccaa">
+        {% call m_titulo("t-ccaa", "Territorio", "Comparando comunidades autónomas · " ~ anio_c) %}
+        {{ m_anio_seccion("anio_c", opciones_anio, anio_c, "t-ccaa") }}
+        {% endcall %}
+        <div class="graficos">
+            {% for g in graficos_comunidad %}{{ m_grafico(g, indicadores, indicador) }}{% endfor %}
+        </div>
+    </section>
+
+    <section class="bloque reveal" id="tabla" aria-labelledby="t-tabla">
+        {% call m_titulo("t-tabla", "Datos", "Explora los datos",
+        "Estás viendo " ~ desglose ~ " (" ~ ("todos los años" if todos else "año " ~ anio_t) ~ "). Filtra, busca, ordena y decide cuánta información quieres ver.") %}
+        {{ m_anio_seccion("anio_t", opciones_tabla, anio_t, "tabla", "Año de la tabla") }}
+        {% endcall %}
+
+        <div class="controles">
+            <label>Ver por
+                <select name="desglose" form="filtros" data-auto data-ancla="tabla">
+                    {% for d in desgloses %}<option value="{{ d }}" {{ 'selected' if d == desglose }}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Buscar
+                <input type="search" name="buscar" form="filtros" value="{{ tabla.buscar }}" placeholder="Ej.: Madrid"
+                    maxlength="40">
+            </label>
+            <div class="controles__grupo">
+                <span class="controles__etiqueta">Información</span>
+                {{ m_segmentado("vista", [("resumen", "Resumen"), ("completa", "Completa")], tabla.vista, "tabla", "Información") }}
+            </div>
+            <div class="controles__grupo">
+                <span class="controles__etiqueta">Filas</span>
+                {{ m_segmentado("filas", [("10", "10"), ("25", "25"), ("0", "Todas")], tabla.filas, "tabla", "Filas") }}
+            </div>
+            <div class="controles__botones">
+                <button class="btn" type="submit" form="filtros" formaction="{{ ruta }}#tabla">Aplicar</button>
+                <a class="btn btn--suave" href="{{ ruta }}#tabla">Restablecer</a>
+            </div>
+        </div>
+
+        {{ m_tabla(tabla) }}
+    </section>
+
+    {{ m_glosario(glosario, notas) }}
+
+    {# Al terminar un sector, la página propone el siguiente y la comparativa: el recorrido no acaba en el glosario #}
+    {% set orden = ['cine', 'teatro', 'musica'] %}
+    {% set nombres = {'cine': 'Cine', 'teatro': 'Teatro', 'musica': 'Música'} %}
+    {% set siguiente = orden[(orden.index(sector) + 1) % 3] %}
+    <nav class="siguiente reveal" aria-label="Seguir explorando">
+        <a class="billete siguiente__enlace siguiente__enlace--{{ siguiente }}" href="{{ url_for(siguiente) }}" data-rasgar>
+            <span>Siguiente sector</span>
+            <strong>{{ nombres[siguiente] }}</strong>
+            <span class="billete__talon" data-talon>Entrar en {{ nombres[siguiente] | lower }}</span>
+        </a>
+        <a class="billete siguiente__enlace siguiente__enlace--neutro" href="{{ url_for('comparativa') }}" data-rasgar>
+            <span>O compáralos todos</span>
+            <strong>Comparativa</strong>
+            <span class="billete__talon" data-talon>Abrir la comparativa</span>
+        </a>
+    </nav>
+</div>
+{% endblock %}

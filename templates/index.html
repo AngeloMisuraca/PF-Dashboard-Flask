@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_macros.html" import m_kpis, m_hallazgos, m_grafico, m_glosario, m_titulo %}
+
+{% block titulo %}Inicio{% endblock %}
+
+{% block contenido %}
+<section class="hero">
+    <div class="contenedor hero__in">
+        <div class="hero__texto">
+            {# Entrada de papel: lo que cubre el dashboard y, en el talón, el periodo. Al pulsarla, el
+               talón se arranca (app.js) y vuelve a aparecer: es un guiño, no lleva a ninguna parte. #}
+            <p>
+                <button type="button" class="entrada" data-rasgar-entrada title="Arranca el talón">
+                    <span class="entrada__cuerpo">
+                        <span class="entrada__sectores" aria-hidden="true"><i class="c"></i><i class="t"></i><i class="m"></i></span>
+                        Cine, teatro y música popular en España
+                    </span>
+                    <span class="entrada__talon">{{ anios | min }}–{{ anios | max }}</span>
+                </button>
+            </p>
+            <h1>¿Dónde está el público y dónde está el dinero?</h1>
+            <p class="hero__parrafo">
+                En {{ anio }} se vendieron <strong>{{ total_pub }} de entradas</strong> y se recaudaron
+                <strong>{{ total_din }}</strong> entre cine, teatro y música popular. Compara los tres sectores con
+                datos oficiales del Ministerio de Cultura.
+            </p>
+            <div class="hero__acciones">
+                <a class="btn btn--grande btn--blanco" href="{{ url_for('comparativa') }}">Comparar los tres sectores</a>
+                <a class="btn btn--grande btn--vidrio" href="{{ url_for('comparativa', estilo='tartas') }}#comparador">Ver los repartos en tartas</a>
+            </div>
+            <div class="pills" role="group" aria-label="Año">
+                <span>Año</span>
+                {% for a in anios %}
+                <a class="pill{{ ' on' if a == anio }}" href="{{ url_for('inicio', anio=a) }}"
+                    {% if a==anio %}aria-current="true" {% endif %}>{{ a }}</a>
+                {% endfor %}
+            </div>
+            <p class="pills__nota">{{ nota_anios }}</p>
+        </div>
+        {# Abanico: una carta por año, sujetas como una mano de baraja. La del año elegido sale
+           hacia arriba; pulsar otra la elige (y la de delante abre sus tartas en el comparador). #}
+        <div class="abanico" style="--alcance: {{ alcance }}" role="group" aria-label="Reparto del público por año">
+            {% for c in cartas %}
+            <a class="carta{{ ' carta--elegida' if c.elegida }}" data-anio="{{ c.anio }}"
+                style="--pos: {{ c.pos }}; --dist: {{ c.distancia }}"
+                href="{{ url_for('comparativa', cmp=1, anios=[c.anio], sectores=['cine', 'teatro', 'conciertos', 'macro'], estilo='tartas') ~ '#comparador' if c.elegida else url_for('inicio', anio=c.anio) }}"
+                {% if c.elegida %}aria-current="true" aria-label="Reparto del público en {{ c.anio }}: ver sus tartas en el comparador"
+                {% else %}aria-label="Ver {{ c.anio }}"{% endif %}>
+                <span class="carta__anio">{{ c.anio }}</span>
+                <div class="tarta-css tarta-css--carta" style="{{ 'background:' ~ c.css }}"></div>
+                <span class="carta__total">{{ c.total }} de entradas</span>
+                {% if c.elegida %}
+                <ul>
+                    {% for l in c.leyenda %}
+                    <li><i style="{{ 'background:' ~ l.color }}"></i>{{ l.nombre }} <b>{{ l.pct }}</b></li>
+                    {% endfor %}
+                </ul>
+                <small>Pulsa para ver las tartas</small>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<div class="contenedor">
+    {{ m_kpis(kpis) }}
+    <p class="nota-kpi">Espectadores de cada sector. Bajo cada cifra: recaudación, precio medio por persona y cambio de
+        público respecto al año anterior.</p>
+
+    <section class="bloque reveal" aria-labelledby="t-principal">
+        {{ m_titulo("t-principal", "Visión general", "La gran comparación") }}
+        <div class="graficos">{{ m_grafico(grafico) }}</div>
+    </section>
+
+    {{ m_hallazgos(hallazgos, "Cuatro ideas clave") }}
+
+    <section class="bloque reveal" aria-labelledby="t-explora">
+        {{ m_titulo("t-explora", "Navega", "Elige por dónde seguir",
+        "Cada sector tiene su propia página con cifras, gráficos por comunidad y la tabla completa. Si prefieres verlos juntos, usa la comparativa.") }}
+        {# Los tres sectores, como entradas; debajo, las dos vistas que los cruzan #}
+        <div class="tarjetas-sector">
+            {% for clave, cfg in sectores %}
+            <a class="billete tarjeta-sector tarjeta-sector--{{ clave }}" href="{{ url_for(clave) }}" data-rasgar>
+                <span class="tarjeta-sector__icono" aria-hidden="true">{{ cfg.icono }}</span>
+                <h3>{{ cfg.titulo }}</h3>
+                <p>{{ cfg.lema }}</p>
+                <span class="billete__talon" data-talon>Entrar en {{ cfg.titulo | lower }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        <div class="tarjetas-vista">
+            <a class="tarjeta-vista" href="{{ url_for('comparativa') }}">
+                <span class="tarjeta-vista__icono" aria-hidden="true">⚖️</span>
+                <span>
+                    <strong>Comparativa</strong>
+                    Elige años, sectores y qué medir, y mira cómo cambian.
+                </span>
+            </a>
+            <a class="tarjeta-vista" href="{{ url_for('comparativa', estilo='tartas') }}#comparador">
+                <span class="tarjeta-vista__icono" aria-hidden="true">🍩</span>
+                <span>
+                    <strong>Tartas</strong>
+                    El reparto del público y del dinero, porción a porción, dentro del comparador.
+                </span>
+            </a>
+        </div>
+    </section>
+
+    <section class="bloque reveal" aria-labelledby="t-como">
+        {{ m_titulo("t-como", "Guía rápida", "Cómo usar este dashboard") }}
+        <ol class="pasos">
+            <li><strong>Empieza por las cifras clave y los hallazgos</strong> de cada página: resumen lo más
+                importante, con su explicación.</li>
+            <li><strong>Mira los gráficos.</strong> Bajo cada uno hay una conclusión y un desplegable «Cómo leer este
+                gráfico».</li>
+            <li><strong>Juega con los filtros:</strong> cambia el año, el indicador del ranking, la comunidad o el tipo
+                de desglose.</li>
+            <li><strong>Baja a la tabla</strong> para buscar, ordenar por cualquier columna y ver más o menos
+                columnas.</li>
+        </ol>
+    </section>
+
+    {{ m_glosario(glosario, notas) }}
+</div>
+{% endblock %}

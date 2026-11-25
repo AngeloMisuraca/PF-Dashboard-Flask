@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Página no encontrada{% endblock %}
+{% block contenido %}
+<section class="cabecera">
+    <div class="contenedor cabecera__in">
+        <h1>Página no encontrada</h1>
+        <p class="lema">La dirección que buscas no existe en este dashboard.</p>
+        <p class="cabecera__accion"><a class="btn btn--grande btn--blanco" href="{{ url_for('inicio') }}">Volver al inicio</a></p>
+    </div>
+</section>
+{% endblock %}

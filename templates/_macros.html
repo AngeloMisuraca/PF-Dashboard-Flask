@@ -1,0 +1,202 @@
+{# Piezas reutilizables: logo, cifras, hallazgos, gráficos, controles, tabla y glosario #}
+
+{# Logo: una entrada (ticket) con su talón troquelado; dentro, tres barras de datos,
+   una por sector (cine, teatro, música) y un foco en el talón. #}
+{% macro logo() %}
+<svg class="logo" viewBox="0 0 40 28" width="40" height="28" aria-hidden="true" focusable="false">
+    <path class="logo__entrada"
+        d="M4 0H36A4 4 0 0 1 40 4V9A5 5 0 0 0 40 19V24A4 4 0 0 1 36 28H4A4 4 0 0 1 0 24V19A5 5 0 0 0 0 9V4A4 4 0 0 1 4 0Z" />
+    <line class="logo__troquel" x1="29" y1="4" x2="29" y2="24" />
+    <rect class="logo__barra logo__barra--cine" x="7" y="7" width="4.5" height="15" rx="1.2" />
+    <rect class="logo__barra logo__barra--teatro" x="13.5" y="13" width="4.5" height="9" rx="1.2" />
+    <rect class="logo__barra logo__barra--musica" x="20" y="10" width="4.5" height="12" rx="1.2" />
+    <circle class="logo__foco" cx="34.5" cy="14" r="2.2" />
+</svg>
+{% endmacro %}
+
+{% macro m_kpis(lista) %}
+<section class="kpis reveal" id="kpis" aria-label="Cifras clave">
+    {% for k in lista %}
+    <article class="kpi{{ ' kpi--' ~ k.clave if k.clave }}" {% if k.ayuda %}title="{{ k.ayuda }}" {% endif %}>
+        <span class="kpi__valor" data-cuenta>{{ k.valor }}</span>
+        <span class="kpi__etiqueta">{{ k.etiqueta }}</span>
+        {% if k.extra %}
+        <span class="kpi__detalle">{{ k.detalle }}</span>
+        <span class="kpi__chip {{ k.tendencia or '' }}">
+            {% if k.tendencia == 'sube' %}▲{% elif k.tendencia == 'baja' %}▼{% endif %} {{ k.extra }}
+        </span>
+        {% elif k.detalle %}
+        <span class="kpi__chip {{ k.tendencia or '' }}">
+            {% if k.tendencia == 'sube' %}▲{% elif k.tendencia == 'baja' %}▼{% endif %} {{ k.detalle }}
+        </span>
+        {% endif %}
+    </article>
+    {% endfor %}
+</section>
+{% endmacro %}
+
+
+{# Cabecera de sección. Con {% call %} se le puede añadir un control a la derecha (p. ej. el año de la sección) #}
+{% macro m_titulo(id, etiqueta, titulo, intro=none) %}
+<header class="titulo{{ ' titulo--control' if caller is defined }}">
+    <div class="titulo__texto">
+        <p class="titulo__etiqueta">{{ etiqueta }}</p>
+        <h2 id="{{ id }}">{{ titulo }}</h2>
+        {% if intro %}<p class="titulo__intro">{{ intro }}</p>{% endif %}
+    </div>
+    {% if caller is defined %}<div class="titulo__control">{{ caller() }}</div>{% endif %}
+</header>
+{% endmacro %}
+
+
+{# Selector del año de UNA sección: cambia solo esa sección y vuelve a ella #}
+{% macro m_anio_seccion(nombre, opciones, actual, ancla, texto="Año de esta sección") %}
+<span class="titulo__control-etiqueta">{{ texto }}</span>
+{{ m_segmentado(nombre, opciones, actual, ancla, texto) }}
+{% endmacro %}
+
+
+{% macro m_hallazgos(lista, titulo="Lo que dicen los datos", id="t-hallazgos") %}
+<section class="bloque reveal" aria-labelledby="{{ id }}">
+    {{ m_titulo(id, "Análisis", titulo) }}
+    <div class="hallazgos">
+        {% for h in lista %}
+        <article class="hallazgo">
+            <span class="hallazgo__icono" aria-hidden="true">{{ h.icono }}</span>
+            <div>
+                <h3>{{ h.titulo }}</h3>
+                <p>{{ h.texto }}</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endmacro %}
+
+
+{# Control segmentado (botones tipo "píldora"). Usa radios enlazados al formulario #filtros. #}
+{% macro m_segmentado(nombre, opciones, actual, ancla, etiqueta) %}
+<fieldset class="seg" aria-label="{{ etiqueta }}">
+    {% for valor, texto in opciones %}
+    <label class="seg__op">
+        <input type="radio" name="{{ nombre }}" value="{{ valor }}" form="filtros" data-auto data-ancla="{{ ancla }}"
+            {{ 'checked' if valor | string == actual | string }}>
+        <span>{{ texto }}</span>
+    </label>
+    {% endfor %}
+</fieldset>
+{% endmacro %}
+
+
+{% macro m_grafico(g, indicadores=none, indicador=none, comunidades=none, comunidad=none) %}
+<figure class="grafico{{ ' grafico--ancho' if g.ancho }}" id="g-{{ g.id }}">
+    <figcaption class="grafico__cab">
+        <h3>{{ g.titulo }}</h3>
+        <p class="grafico__sub">{{ g.sub }}</p>
+        {% if g.selector == 'indicador' and indicadores %}
+        <label class="selector">Indicador
+            <select name="indicador" form="filtros" data-auto data-ancla="g-ranking">
+                {% for i in indicadores %}
+                <option value="{{ i }}" {{ 'selected' if i == indicador }}>{{ i }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% elif g.selector == 'comunidad' and comunidades %}
+        <label class="selector">Comunidad
+            <select name="comunidad" form="filtros" data-auto data-ancla="g-{{ g.id }}">
+                {% for c in comunidades %}
+                <option value="{{ c }}" {{ 'selected' if c == comunidad }}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% endif %}
+    </figcaption>
+    {# Los datos del gráfico van como JSON; static/js/graficos.js los dibuja (con tooltips y leyenda pulsable) #}
+    <div class="lienzo lienzo--{{ g.spec.tipo }}" data-grafico data-alt="{{ g.alt }}">
+        <script type="application/json">{{ g.spec | tojson }}</script>
+        <noscript><p class="lienzo__aviso">Activa JavaScript para ver este gráfico. Los mismos datos están en la
+                tabla de la página.</p></noscript>
+    </div>
+    {% if g.conclusion %}
+    <p class="conclusion"><strong>Conclusión</strong> {{ g.conclusion }}</p>
+    {% endif %}
+    <details class="lectura">
+        <summary>Cómo leer este gráfico</summary>
+        <p>{{ g.lectura }}</p>
+    </details>
+    {% if g.png %}
+    {# La misma gráfica en imagen, dibujada en el servidor con matplotlib (logic/imagenes.py) #}
+    <a class="grafico__png" href="{{ g.png }}" download>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+            <path d="M8 1.5v8.5M4.5 6.5 8 10l3.5-3.5M2.5 12v2.5h11V12" fill="none" stroke="currentColor"
+                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Descargar como imagen (PNG)
+    </a>
+    {% endif %}
+</figure>
+{% endmacro %}
+
+
+{% macro m_tabla(t) %}
+<div class="tabla-wrap" tabindex="0" role="region" aria-label="Tabla de datos">
+    <table class="tabla">
+        <thead>
+            <tr>
+                {% for c in t.datos.columnas %}
+                {% set e = t.enlaces[c] %}
+                <th scope="col" class="{{ 'num' if t.datos.numericas[loop.index0] }}{{ ' ordenada' if e.estado }}"
+                    aria-sort="{{ e.aria }}">
+                    <a href="{{ e.url }}" title="{{ t.ayudas.get(c, 'Ordenar por ' ~ c) }}">{{ c }}
+                        <span class="flecha" aria-hidden="true">{{ e.estado or '↕' }}</span></a>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in t.datos.filas %}
+            <tr>
+                {% for celda in fila %}
+                <td class="{{ 'num' if t.datos.numericas[loop.index0] }}{{ ' conbarra' if celda.b is not none }}"
+                    {% if celda.b is not none %}style="--b: {{ celda.b }}%" {% endif %}>
+                    <span>{{ celda.t }}</span>
+                </td>
+                {% endfor %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ t.datos.columnas | length or 1 }}" class="vacio">
+                    Ninguna fila coincide con la búsqueda «{{ t.buscar }}».</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="tabla-pie">Mostrando <strong>{{ t.datos.mostradas }}</strong> de <strong>{{ t.datos.total }}</strong> filas ·
+    pulsa el nombre de una columna para ordenar (otra vez para invertir). Las barras de las columnas con % comparan
+    cada fila con el valor más alto.</p>
+{% endmacro %}
+
+
+{% macro m_glosario(glosario, notas) %}
+<section class="bloque reveal" aria-labelledby="t-glosario">
+    {{ m_titulo("t-glosario", "Ayuda", "Para entender los datos") }}
+    <div class="dos-cols">
+        <details class="caja" open>
+            <summary>Glosario</summary>
+            <dl>
+                {% for termino, definicion in glosario %}
+                <dt>{{ termino }}</dt>
+                <dd>{{ definicion }}</dd>
+                {% endfor %}
+            </dl>
+        </details>
+        <details class="caja" open>
+            <summary>Ten en cuenta</summary>
+            <ul>
+                {% for n in notas %}<li>{{ n }}</li>{% endfor %}
+            </ul>
+        </details>
+    </div>
+</section>
+{% endmacro %}

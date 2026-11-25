@@ -1,0 +1,74 @@
+{% from "_macros.html" import logo %}<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Inicio{% endblock %} · Ocio cultural en España</title>
+    <meta name="description"
+        content="Dashboard interactivo sobre cine, teatro y música popular en España (2022-2025) con datos del Ministerio de Cultura.">
+    <meta name="theme-color" content="#3A0D15">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>document.documentElement.classList.add('js');</script>
+</head>
+
+<body data-sector="{% block sector %}inicio{% endblock %}">
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+    <header class="barra">
+        <div class="barra__in">
+            <a class="marca" href="{{ url_for('inicio') }}" aria-label="Ocio cultural en cifras, inicio">
+                {{ logo() }}
+                <span class="marca__texto">Ocio cultural <b>en cifras</b></span>
+            </a>
+            {# Menú agrupado: portada | los tres sectores | vistas transversales | método #}
+            <nav class="menu" aria-label="Principal">
+                {% set grupos = [
+                [('inicio', 'Inicio')],
+                [('cine', 'Cine'), ('teatro', 'Teatro'), ('musica', 'Música')],
+                [('comparativa', 'Comparativa')],
+                [('fuentes', 'Fuentes')]] %}
+                {% for grupo in grupos %}
+                {% if not loop.first %}<span class="menu__sep" aria-hidden="true"></span>{% endif %}
+                {% for endpoint, texto in grupo %}
+                <a href="{{ url_for(endpoint) }}" class="{{ 'activo' if request.endpoint == endpoint }}"
+                    {% if request.endpoint==endpoint %}aria-current="page" {% endif %}>{{ texto }}</a>
+                {% endfor %}
+                {% endfor %}
+            </nav>
+        </div>
+    </header>
+
+    <main id="contenido">
+        {% block contenido %}{% endblock %}
+    </main>
+
+    <footer class="pie">
+        <div class="contenedor pie__in">
+            <div class="pie__id">
+                {{ logo() }}
+                <p class="pie__marca">Ocio cultural <b>en cifras</b></p>
+                <p>Proyecto final de Big Data · Flask, pandas y Chart.js.</p>
+            </div>
+            <p class="pie__fuente">Fuente: Ministerio de Cultura, <em>Anuarios de Estadísticas Culturales 2024 y
+                    2026</em> y <em>Estadística de Cinematografía</em> (ICAA). Teatro y música: SGAE. Años {{ anio_inicio }}
+                a {{ anio_fin }}; 2021 y anteriores no se incluyen por la pandemia.
+                <a href="{{ url_for('fuentes') }}">Fuentes y método</a>
+            </p>
+        </div>
+    </footer>
+
+    {# Chart.js dibuja los gráficos a partir de los datos JSON de cada página #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"
+        defer></script>
+    <script src="{{ url_for('static', filename='js/graficos.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+
+</html>
